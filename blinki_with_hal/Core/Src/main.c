@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -91,17 +92,25 @@ int main(void)
   /* USER CODE BEGIN 2 */
   // Start timer
   HAL_TIM_Base_Start_IT(&htim11);
+  bool button_released = false;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
-    /* USER CODE END WHILE */
+    {
+  	  GPIO_PinState button_status = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+  	  if(button_status == GPIO_PIN_RESET && button_released) // button pressed
+  	  {
+  		  button_released = false;
+  		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+  	  }
+  	  if(button_status == GPIO_PIN_SET) // button released
+  	  {
+  		  button_released = true;
+  	  }
+    }
 }
 
 /**
