@@ -22,10 +22,30 @@
 #define RCC_AHB1ENR_ADDR 0x40023830
 #define RCC_AHB1_TURNON_GPIOC 0x00000004
 #define GPIOC_MODER_ADDR 0x40020800
-#define MODER_PIN13_GPO 0x04000000
+#define MODER_PIN13_GPIO 0x04000000
 #define GPIOC_ODR_ADDR 0x40020814
-#define ODR_PIN_HIGH 0x00002000
-#define ODR_PIN_LOW 0x00000000
+#define GPIOC_ODR_PIN13 0x00002000
+
+#define RCC_APB2ENR_ADDR 0x40023844
+#define RCC_APB2_TURNON_TIM11 0x00040000
+#define RCC_APB2_TURNON_SYSCFG 0x00004000
+#define TIM11_CR1_ADDR 0x40014800
+#define TIM11_CR1_EN 0x00000001
+#define TIM11_DIER_ADDR 0x4001480C
+#define TIM11_DIER_ENABLE_INTERRUPT 0x00000001
+#define TIM11_PSC_ADDR 0x40014828
+//#define TIM11_PSC_VALUE 0x000000F4 // Divide by 245
+#define TIM11_PSC_VALUE 0x0000FFFF // Divide by 2^16
+#define TIM11_CNT 0x40014824
+
+
+// Function Declarations
+void intetrrupts_init();
+void gpio_init();
+void timer11_init();
+void toggle_gpio_pin(uint32_t *p_gpio_odr, uint32_t gpio_pin_location);
+void set_register_value(uint32_t *p_reister_addr, uint32_t set_value);
+
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
@@ -33,15 +53,60 @@
 
 int main(void)
 {
-	uint32_t *p_gpio_rcc_ahb1_en_addr = (uint32_t*) RCC_AHB1ENR_ADDR;
-	uint32_t *p_gpioc_odr = (uint32_t*) GPIOC_ODR_ADDR;
-	uint32_t *p_gpioc_moder = (uint32_t*) GPIOC_MODER_ADDR;
-	*p_gpio_rcc_ahb1_en_addr = (uint32_t) RCC_AHB1_TURNON_GPIOC;
-	*p_gpioc_moder = (uint32_t) MODER_PIN13_GPO;
+	intetrrupts_init();
+	timer11_init();
+	gpio_init();
     /* Loop forever */
+	uint16_t timer_val = *(uint32_t *) TIM11_CNT;
+	uint16_t current_time;
 	while(1)
 	{
-		*p_gpioc_odr = (uint32_t) ODR_PIN_HIGH;
-		*p_gpioc_odr = (uint32_t) ODR_PIN_LOW;
+		current_time = *(uint32_t *) TIM11_CNT;
+		if ((current_time - timer_val) > 0x80)
+		{
+			toggle_gpio_pin((uint32_t*) GPIOC_ODR_ADDR, GPIOC_ODR_PIN13);
+			timer_val = *(uint32_t *) TIM11_CNT;
+		}
 	}
 }
+
+
+// Function Implementation
+void intetrrupts_init()
+{
+	set_register_value((uint32_t*) RCC_APB2ENR_ADDR, RCC_APB2_TURNON_SYSCFG);
+}
+
+void timer11_init()
+{
+	set_register_value((uint32_t*) RCC_APB2ENR_ADDR, RCC_APB2_TURNON_TIM11); // Turn on TIMER11 from RCC
+	set_register_value((uint32_t*) TIM11_DIER_ADDR, TIM11_DIER_ENABLE_INTERRUPT);
+	set_register_value((uint32_t*) TIM11_PSC_ADDR, TIM11_PSC_VALUE);
+	set_register_value((uint32_t*) TIM11_CR1_ADDR, TIM11_CR1_EN); // Enable TIMER11
+}
+
+
+void gpio_init()
+{
+	set_register_value((uint32_t*) RCC_AHB1ENR_ADDR, RCC_AHB1_TURNON_GPIOC);
+	set_register_value((uint32_t*) GPIOC_ODR_ADDR, GPIOC_ODR_PIN13); // Set initial value LED OFF
+	set_register_value((uint32_t*) GPIOC_MODER_ADDR, MODER_PIN13_GPIO);
+}
+
+
+void toggle_gpio_pin(uint32_t *p_gpio_odr, uint32_t gpio_pin_location)
+{
+	*p_gpio_odr ^= gpio_pin_location;
+	return;
+}
+
+void set_register_value(uint32_t *p_reister_addr, uint32_t set_value)
+{
+	*p_reister_addr |= set_value;
+}
+
+void TIM1_TRG_COM_TIM11_IRQHandler()
+{
+	toggle_gpio_pin((uint32_t*) GPIOC_ODR_ADDR, GPIOC_ODR_PIN13);
+}
+
