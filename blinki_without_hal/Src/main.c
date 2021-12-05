@@ -34,9 +34,12 @@
 #define TIM11_DIER_ADDR 0x4001480C
 #define TIM11_DIER_ENABLE_INTERRUPT 0x00000001
 #define TIM11_PSC_ADDR 0x40014828
-//#define TIM11_PSC_VALUE 0x000000F4 // Divide by 245
-#define TIM11_PSC_VALUE 0x0000FFFF // Divide by 2^16
+#define TIM11_PSC_VALUE 0x0000007A // Divide by 122 ( 16Mhz / 120 /2 = 65,573
 #define TIM11_CNT 0x40014824
+#define TIM11_SR_ADDR 0x40014810
+#define TIM11_SR_UI_BIT 0x1
+#define NVIC_ISER0_ADDR 0xE000E100
+#define TIM11_INTERRUPT_NUM 0x04000000
 
 
 // Function Declarations
@@ -45,6 +48,7 @@ void gpio_init();
 void timer11_init();
 void toggle_gpio_pin(uint32_t *p_gpio_odr, uint32_t gpio_pin_location);
 void set_register_value(uint32_t *p_reister_addr, uint32_t set_value);
+void clear_register_value(uint32_t *p_reister_addr, uint32_t clear_value);
 
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
@@ -57,16 +61,9 @@ int main(void)
 	timer11_init();
 	gpio_init();
     /* Loop forever */
-	uint16_t timer_val = *(uint32_t *) TIM11_CNT;
-	uint16_t current_time;
-	while(1)
+		while(1)
 	{
-		current_time = *(uint32_t *) TIM11_CNT;
-		if ((current_time - timer_val) > 0x80)
-		{
-			toggle_gpio_pin((uint32_t*) GPIOC_ODR_ADDR, GPIOC_ODR_PIN13);
-			timer_val = *(uint32_t *) TIM11_CNT;
-		}
+
 	}
 }
 
@@ -75,6 +72,7 @@ int main(void)
 void intetrrupts_init()
 {
 	set_register_value((uint32_t*) RCC_APB2ENR_ADDR, RCC_APB2_TURNON_SYSCFG);
+	set_register_value((uint32_t*) NVIC_ISER0_ADDR, TIM11_INTERRUPT_NUM);
 }
 
 void timer11_init()
@@ -105,8 +103,14 @@ void set_register_value(uint32_t *p_reister_addr, uint32_t set_value)
 	*p_reister_addr |= set_value;
 }
 
-void TIM1_TRG_COM_TIM11_IRQHandler()
+void clear_register_value(uint32_t *p_reister_addr, uint32_t clear_value)
 {
+	*p_reister_addr &= ~clear_value;
+}
+
+void TIM1_TRG_COM_TIM11_IRQHandler(void)
+{
+	clear_register_value((uint32_t*) TIM11_SR_ADDR, TIM11_SR_UI_BIT);
 	toggle_gpio_pin((uint32_t*) GPIOC_ODR_ADDR, GPIOC_ODR_PIN13);
 }
 
