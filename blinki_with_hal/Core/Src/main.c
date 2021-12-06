@@ -34,7 +34,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define UART_TX_TIMEOUT 100
 #define UART_BUFF_LEN 50
 #define UART_MSG "ouch\r\n"
 #define BUTTON_DEBOUNCE_TIME_MSEC 50
@@ -47,10 +46,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim11;
-
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+uint32_t previous_button_press_time = 0;
+char uart_buf[UART_BUFF_LEN];
+int uart_msg_len = sprintf(uart_buf, UART_MSG);
 
 /* USER CODE END PV */
 
@@ -60,7 +61,6 @@ static void MX_GPIO_Init(void);
 static void MX_TIM11_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
 
 /* USER CODE END PFP */
 
@@ -76,9 +76,6 @@ GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	bool button_released = false;
-	char uart_buf[UART_BUFF_LEN];
-	int uart_buf_len = sprintf(uart_buf, UART_MSG);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -110,19 +107,8 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-    {
-  	  GPIO_PinState button_status = GPIO_ReadPinButtonDebouncer(GPIOA, GPIO_PIN_0);
-  	  if(button_status == GPIO_PIN_RESET && button_released) // button pressed
-  	  {
-  		  button_released = false;
-  		  HAL_UART_Transmit(&huart1, (uint8_t *)uart_buf, uart_buf_len, 100);
-
-  	  }
-  	  if(button_status == GPIO_PIN_SET) // button released
-  	  {
-  		  button_released = true;
-  	  }
-    }
+  {
+  }
 }
 
 /**
@@ -253,9 +239,13 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 }
 
@@ -270,22 +260,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	GPIO_PinState current_button_status = HAL_GPIO_ReadPin(GPIOx, GPIO_Pin);
-	GPIO_PinState new_button_status;
-	while(true)
+	if (GPIO_Pin == GPIO_PIN_0)
 	{
-		HAL_Delay(BUTTON_DEBOUNCE_TIME_MSEC);
-		new_button_status = HAL_GPIO_ReadPin(GPIOx, GPIO_Pin);
-		if (new_button_status == current_button_status) // Button press consistent
+		uint32_t current_time = HAL_GetTick();
+		if (current_time - previous_button_press_time > BUTTON_DEBOUNCE_TIME_MSEC)
 		{
-			return current_button_status;
-		} // experiencing button bouncing
-		current_button_status = new_button_status;
+			HAL_UART_Transmit(&huart1, (uint8_t *)uart_buf, uart_msg_len, 100);
+			previous_button_press_time = current_time;
+		}
 	}
-
 }
+
 
 /* USER CODE END 4 */
 
