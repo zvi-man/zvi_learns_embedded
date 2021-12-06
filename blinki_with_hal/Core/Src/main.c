@@ -36,7 +36,7 @@
 /* USER CODE BEGIN PD */
 #define UART_BUFF_LEN 50
 #define UART_MSG "ouch\r\n"
-#define BUTTON_DEBOUNCE_TIME_MSEC 50
+#define BUTTON_DEBOUNCE_TIME_MSEC 100
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,12 +46,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim11;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 uint32_t previous_button_press_time = 0;
 char uart_buf[UART_BUFF_LEN];
-int uart_msg_len = sprintf(uart_buf, UART_MSG);
 
 /* USER CODE END PV */
 
@@ -108,7 +108,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
   }
+  /* USER CODE END 3 */
 }
 
 /**
@@ -240,7 +244,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
@@ -267,6 +271,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		uint32_t current_time = HAL_GetTick();
 		if (current_time - previous_button_press_time > BUTTON_DEBOUNCE_TIME_MSEC)
 		{
+			int uart_msg_len = sprintf(uart_buf, UART_MSG);
 			HAL_UART_Transmit(&huart1, (uint8_t *)uart_buf, uart_msg_len, 100);
 			previous_button_press_time = current_time;
 		}
