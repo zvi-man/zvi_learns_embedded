@@ -37,6 +37,7 @@
 #define UART_TX_TIMEOUT 100
 #define UART_BUFF_LEN 50
 #define UART_MSG "ouch\r\n"
+#define BUTTON_DEBOUNCE_TIME_MSEC 50
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -59,6 +60,7 @@ static void MX_GPIO_Init(void);
 static void MX_TIM11_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
+GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
 
 /* USER CODE END PFP */
 
@@ -109,7 +111,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
     {
-  	  GPIO_PinState button_status = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+  	  GPIO_PinState button_status = GPIO_ReadPinButtonDebouncer(GPIOA, GPIO_PIN_0);
   	  if(button_status == GPIO_PIN_RESET && button_released) // button pressed
   	  {
   		  button_released = false;
@@ -259,7 +261,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 // Callback timer has reset
-HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	// Check wich timer triggered the interrupt
 	if (htim == &htim11)
@@ -267,6 +269,24 @@ HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	}
 }
+
+GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
+{
+	GPIO_PinState current_button_status = HAL_GPIO_ReadPin(GPIOx, GPIO_Pin);
+	GPIO_PinState new_button_status;
+	while(true)
+	{
+		HAL_Delay(BUTTON_DEBOUNCE_TIME_MSEC);
+		new_button_status = HAL_GPIO_ReadPin(GPIOx, GPIO_Pin);
+		if (new_button_status == current_button_status) // Button press consistent
+		{
+			return current_button_status;
+		} // experiencing button bouncing
+		current_button_status = new_button_status;
+	}
+
+}
+
 /* USER CODE END 4 */
 
 /**
