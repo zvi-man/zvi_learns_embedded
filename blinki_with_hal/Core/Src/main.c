@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include <stdbool.h>
+#include <string.h>
 #include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
@@ -37,7 +38,9 @@
 #define UART_TX_TIMEOUT 100
 #define UART_BUFF_LEN 50
 #define UART_MSG "ouch\r\n"
+#define ERROR_UART_RECEIVE_MSG "ERROR got too many bytes"
 #define BUTTON_DEBOUNCE_TIME_MSEC 50
+#define NUM_OF_BYTES_IN_UINT32 4
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,11 +50,16 @@
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim11;
-
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+union special_8bit_buff{
+	uint32_t total_value;
+	uint8_t buff[NUM_OF_BYTES_IN_UINT32];
+};
 
+union special_8bit_buff uart_delay_buff;
+uint16_t received_bytes = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,6 +69,7 @@ static void MX_TIM11_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
+static void set_tim11_interval(uint32_t time_delay_msec);
 
 /* USER CODE END PFP */
 
@@ -77,8 +86,8 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 	bool button_released = false;
-	char uart_buf[UART_BUFF_LEN];
-	int uart_buf_len = sprintf(uart_buf, UART_MSG);
+	char uart_msg_buff[UART_BUFF_LEN];
+	int uart_buf_len = sprintf(uart_msg_buff, UART_MSG);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -115,12 +124,18 @@ int main(void)
   	  if(button_status == GPIO_PIN_RESET && button_released) // button pressed
   	  {
   		  button_released = false;
-  		  HAL_UART_Transmit(&huart1, (uint8_t *)uart_buf, uart_buf_len, 100);
+  		  HAL_UART_Transmit(&huart1, (uint8_t *)uart_msg_buff, uart_buf_len, 100);
 
   	  }
   	  if(button_status == GPIO_PIN_SET) // button released
   	  {
   		  button_released = true;
+  	  }
+  	  HAL_UART_Receive(&huart1, uart_delay_buff.buff, 4, HAL_MAX_DELAY);
+  	  received_bytes = 4;
+  	  if(received_bytes == NUM_OF_BYTES_IN_UINT32)
+  	  {
+  		  set_tim11_interval(uart_delay_buff.total_value);
   	  }
     }
 }
@@ -179,9 +194,9 @@ static void MX_TIM11_Init(void)
 
   /* USER CODE END TIM11_Init 1 */
   htim11.Instance = TIM11;
-  htim11.Init.Prescaler = 2500 -1;
+  htim11.Init.Prescaler = 25000 -1;
   htim11.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim11.Init.Period = 5000 - 1;
+  htim11.Init.Period = 500 - 1;
   htim11.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim11.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim11) != HAL_OK)
@@ -193,6 +208,12 @@ static void MX_TIM11_Init(void)
   /* USER CODE END TIM11_Init 2 */
 
 }
+
+static void set_tim11_interval(uint32_t time_delay_msec)
+{
+	htim11.Instance->ARR = time_delay_msec;
+}
+
 
 /**
   * @brief USART1 Initialization Function
@@ -274,6 +295,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	}
 }
+
 
 GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
 {
