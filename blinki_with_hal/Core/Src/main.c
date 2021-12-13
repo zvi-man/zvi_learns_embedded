@@ -36,7 +36,7 @@
 /* USER CODE BEGIN PD */
 #define UART_BUFF_LEN 100
 #define UART_MSG "ouch\r\n"
-#define BUTTON_DEBOUNCE_TIME_MSEC 100
+#define BUTTON_DEBOUNCE_TIME_MSEC 300
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -45,13 +45,17 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim10;
 TIM_HandleTypeDef htim11;
 
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 uint32_t previous_button_press_time = 0;
-int32_t button_press_counter = 0;
+uint32_t button_press_counter = 0;
+uint32_t last_interrupt_precessing_time = 0;
+bool is_buffer_full = false;
+uint32_t uart_msg_len = 0;
 char uart_buf[UART_BUFF_LEN];
 
 
@@ -62,8 +66,9 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM11_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM10_Init(void);
 /* USER CODE BEGIN PFP */
-
+uint32_t get_tim10_counter();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -100,9 +105,11 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM11_Init();
   MX_USART1_UART_Init();
+  MX_TIM10_Init();
   /* USER CODE BEGIN 2 */
   // Start timer
   HAL_TIM_Base_Start_IT(&htim11);
+  HAL_TIM_Base_Start(&htim10);
 
   /* USER CODE END 2 */
 
@@ -111,7 +118,11 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+	  if (is_buffer_full)
+	  {
+		  HAL_UART_Transmit(&huart1, (uint8_t *)uart_buf, uart_msg_len, 100);
+		  is_buffer_full = false;
+	  }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -153,6 +164,37 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM10 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM10_Init(void)
+{
+
+  /* USER CODE BEGIN TIM10_Init 0 */
+
+  /* USER CODE END TIM10_Init 0 */
+
+  /* USER CODE BEGIN TIM10_Init 1 */
+
+  /* USER CODE END TIM10_Init 1 */
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 25000-1;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 65535;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM10_Init 2 */
+
+  /* USER CODE END TIM10_Init 2 */
+
 }
 
 /**
@@ -266,22 +308,38 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
+uint32_t get_tim10_counter()
+{
+	return htim10.Instance->CNT;
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	if (GPIO_Pin == GPIO_PIN_0)
 	{
-		uint32_t current_time = HAL_GetTick();
-		if (current_time - previous_button_press_time > BUTTON_DEBOUNCE_TIME_MSEC)
+		if(is_buffer_full)
 		{
-//			int uart_msg_len = sprintf(uart_buf, UART_MSG);
-			int uart_msg_len = sprintf(uart_buf, "current time: %lu, Prev time: %lu, counter: %lu\r\n",
-					(unsigned long)current_time,
-					(unsigned long)previous_button_press_time,
-					(unsigned long)button_press_counter++);
-			HAL_UART_Transmit(&huart1, (uint8_t *)uart_buf, uart_msg_len, 100);
-			previous_button_press_time = current_time;
-//			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+			HAL_UART_Transmit(&huart1, (uint8_t *)"missing message\r\n", 30, 100);
 		}
+		uint32_t current_time_msec = get_tim10_counter();
+		if (current_time_msec - previous_button_press_time > BUTTON_DEBOUNCE_TIME_MSEC)
+		{
+			uart_msg_len = sprintf(uart_buf, "current time: %lu, Prev time: %lu, last int proecess time %lu counter: %lu\r\n",
+					(unsigned long)current_time_msec,
+					(unsigned long)previous_button_press_time,
+					(unsigned long)last_interrupt_precessing_time,
+					(unsigned long)++button_press_counter);
+			previous_button_press_time = current_time_msec;
+		} else
+		{
+			uart_msg_len = sprintf(uart_buf, "current time: %lu, Prev time: %lu, last int proecess time %lu counter: %lu did not enter\r\n",
+								(unsigned long)current_time_msec,
+								(unsigned long)previous_button_press_time,
+								(unsigned long)last_interrupt_precessing_time,
+								(unsigned long)button_press_counter);
+		}
+		is_buffer_full = true;
+		last_interrupt_precessing_time = get_tim10_counter() - current_time_msec;
 	}
 }
 
