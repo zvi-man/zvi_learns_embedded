@@ -34,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define UART_BUFF_LEN 50
+#define UART_BUFF_LEN 100
 #define UART_MSG "ouch\r\n"
 #define BUTTON_DEBOUNCE_TIME_MSEC 100
 /* USER CODE END PD */
@@ -51,7 +51,9 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 uint32_t previous_button_press_time = 0;
+int32_t button_press_counter = 0;
 char uart_buf[UART_BUFF_LEN];
+
 
 /* USER CODE END PV */
 
@@ -271,9 +273,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		uint32_t current_time = HAL_GetTick();
 		if (current_time - previous_button_press_time > BUTTON_DEBOUNCE_TIME_MSEC)
 		{
-			int uart_msg_len = sprintf(uart_buf, UART_MSG);
+//			int uart_msg_len = sprintf(uart_buf, UART_MSG);
+			int uart_msg_len = sprintf(uart_buf, "current time: %lu, Prev time: %lu, counter: %lu\r\n",
+					(unsigned long)current_time,
+					(unsigned long)previous_button_press_time,
+					(unsigned long)button_press_counter++);
 			HAL_UART_Transmit(&huart1, (uint8_t *)uart_buf, uart_msg_len, 100);
 			previous_button_press_time = current_time;
+//			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 		}
 	}
 }
