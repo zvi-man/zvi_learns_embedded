@@ -59,7 +59,6 @@ union special_8bit_buff{
 };
 
 union special_8bit_buff uart_delay_buff;
-uint16_t received_bytes = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -113,6 +112,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   // Start timer
   HAL_TIM_Base_Start_IT(&htim11);
+  HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
 
   /* USER CODE END 2 */
 
@@ -130,12 +130,6 @@ int main(void)
   	  if(button_status == GPIO_PIN_SET) // button released
   	  {
   		  button_released = true;
-  	  }
-  	  HAL_UART_Receive(&huart1, uart_delay_buff.buff, 4, HAL_MAX_DELAY);
-  	  received_bytes = 4;
-  	  if(received_bytes == NUM_OF_BYTES_IN_UINT32)
-  	  {
-  		  set_tim11_interval(uart_delay_buff.total_value);
   	  }
     }
 }
@@ -209,11 +203,6 @@ static void MX_TIM11_Init(void)
 
 }
 
-static void set_tim11_interval(uint32_t time_delay_msec)
-{
-	htim11.Instance->ARR = time_delay_msec;
-}
-
 
 /**
   * @brief USART1 Initialization Function
@@ -248,9 +237,19 @@ static void MX_USART1_UART_Init(void)
 
 }
 
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+	if (huart == &huart1)
+	{
+		set_tim11_interval(uart_delay_buff.total_value);
+		HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
+	}
+}
 
+
+static void set_tim11_interval(uint32_t time_delay_msec)
+{
+	htim11.Instance->ARR = time_delay_msec;
 }
 
 /**
