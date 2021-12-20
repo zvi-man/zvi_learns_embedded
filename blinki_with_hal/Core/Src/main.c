@@ -19,9 +19,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <stdbool.h>
-#include <string.h>
-#include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -35,11 +32,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define UART_TX_TIMEOUT 100
-#define UART_BUFF_LEN 50
-#define UART_MSG "ouch\r\n"
-#define ERROR_UART_RECEIVE_MSG "ERROR got too many bytes"
-#define BUTTON_DEBOUNCE_TIME_MSEC 50
 #define NUM_OF_BYTES_IN_UINT32 4
 /* USER CODE END PD */
 
@@ -49,7 +41,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef htim11;
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
@@ -59,17 +52,16 @@ union special_8bit_buff{
 };
 
 union special_8bit_buff uart_delay_buff;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_TIM11_Init(void);
+static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
-static void set_tim11_interval(uint32_t time_delay_msec);
-
+static void set_tim2_interval(uint32_t time_delay_msec);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -84,9 +76,7 @@ static void set_tim11_interval(uint32_t time_delay_msec);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	bool button_released = false;
-	char uart_msg_buff[UART_BUFF_LEN];
-	int uart_buf_len = sprintf(uart_msg_buff, UART_MSG);
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -107,11 +97,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_TIM11_Init();
+  MX_TIM2_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  // Start timer
-  HAL_TIM_Base_Start_IT(&htim11);
+  HAL_TIM_Base_Start_IT(&htim2);
   HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
 
   /* USER CODE END 2 */
@@ -119,19 +108,37 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-    {
-  	  GPIO_PinState button_status = GPIO_ReadPinButtonDebouncer(GPIOA, GPIO_PIN_0);
-  	  if(button_status == GPIO_PIN_RESET && button_released) // button pressed
-  	  {
-  		  button_released = false;
-  		  HAL_UART_Transmit(&huart1, (uint8_t *)uart_msg_buff, uart_buf_len, 100);
+  {
+    /* USER CODE END WHILE */
 
-  	  }
-  	  if(button_status == GPIO_PIN_SET) // button released
-  	  {
-  		  button_released = true;
-  	  }
-    }
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (huart == &huart1)
+	{
+		set_tim2_interval(uart_delay_buff.total_value);
+		HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
+	}
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim == &htim2)
+	{
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	}
+}
+
+
+static void set_tim2_interval(uint32_t time_delay_msec)
+{
+	htim2.Instance->ARR = time_delay_msec;
+	htim2.Instance->CNT = 0;
 }
 
 /**
@@ -173,36 +180,49 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief TIM11 Initialization Function
+  * @brief TIM2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM11_Init(void)
+static void MX_TIM2_Init(void)
 {
 
-  /* USER CODE BEGIN TIM11_Init 0 */
+  /* USER CODE BEGIN TIM2_Init 0 */
 
-  /* USER CODE END TIM11_Init 0 */
+  /* USER CODE END TIM2_Init 0 */
 
-  /* USER CODE BEGIN TIM11_Init 1 */
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-  /* USER CODE END TIM11_Init 1 */
-  htim11.Instance = TIM11;
-  htim11.Init.Prescaler = 25000 -1;
-  htim11.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim11.Init.Period = 500 - 1;
-  htim11.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim11.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim11) != HAL_OK)
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 25000 - 1;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 500 - 1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN TIM11_Init 2 */
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
 
-  /* USER CODE END TIM11_Init 2 */
+  /* USER CODE END TIM2_Init 2 */
 
 }
-
 
 /**
   * @brief USART1 Initialization Function
@@ -237,21 +257,6 @@ static void MX_USART1_UART_Init(void)
 
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	if (huart == &huart1)
-	{
-		set_tim11_interval(uart_delay_buff.total_value);
-		HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
-	}
-}
-
-
-static void set_tim11_interval(uint32_t time_delay_msec)
-{
-	htim11.Instance->ARR = time_delay_msec;
-}
-
 /**
   * @brief GPIO Initialization Function
   * @param None
@@ -267,7 +272,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -276,42 +281,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
 }
 
 /* USER CODE BEGIN 4 */
-// Callback timer has reset
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	// Check wich timer triggered the interrupt
-	if (htim == &htim11)
-	{
-		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-	}
-}
-
-
-GPIO_PinState GPIO_ReadPinButtonDebouncer(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
-{
-	GPIO_PinState current_button_status = HAL_GPIO_ReadPin(GPIOx, GPIO_Pin);
-	GPIO_PinState new_button_status;
-	while(true)
-	{
-		HAL_Delay(BUTTON_DEBOUNCE_TIME_MSEC);
-		new_button_status = HAL_GPIO_ReadPin(GPIOx, GPIO_Pin);
-		if (new_button_status == current_button_status) // Button press consistent
-		{
-			return current_button_status;
-		} // experiencing button bouncing
-		current_button_status = new_button_status;
-	}
-
-}
 
 /* USER CODE END 4 */
 
