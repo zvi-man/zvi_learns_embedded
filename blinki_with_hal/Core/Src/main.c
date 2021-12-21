@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "task_handler.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -61,7 +62,8 @@ static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-static void set_tim2_interval(uint32_t time_delay_msec);
+static void TIM2_SetIntervalAndIniUartRead();
+static void BLUE_LED_ToggleLED();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -102,6 +104,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
+  TASK_HANDLER_Init();
 
   /* USER CODE END 2 */
 
@@ -110,6 +113,11 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+	  if (TASK_HANDLER_IsTaskWaiting())
+	  {
+		  task* next_task_fp = TASK_HANDLER_PopNextTask();
+		  next_task_fp();
+	  }
 
     /* USER CODE BEGIN 3 */
   }
@@ -121,8 +129,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart1)
 	{
-		set_tim2_interval(uart_delay_buff.total_value);
-		HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
+		TIM2_SetIntervalAndIniUartRead();
 	}
 }
 
@@ -130,15 +137,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim == &htim2)
 	{
-		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+		BLUE_LED_ToggleLED();
 	}
+}
+static void BLUE_LED_ToggleLED()
+{
+	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 }
 
 
-static void set_tim2_interval(uint32_t time_delay_msec)
+static void TIM2_SetIntervalAndIniUartRead()
 {
-	htim2.Instance->ARR = time_delay_msec;
+	htim2.Instance->ARR = uart_delay_buff.total_value;
 	htim2.Instance->CNT = 0;
+	HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
 }
 
 /**
