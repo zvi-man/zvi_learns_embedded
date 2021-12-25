@@ -5,7 +5,7 @@
  *      Author: zvi
  */
 
-
+#include "main.h"
 #include "task_handler.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,13 +16,13 @@ task* p_task_p_list[TASK_LIST_LEN];
 uint32_t next_task, task_list_head;
 
 
-static void TASK_HANDLER_Init()
+void TASK_HANDLER_Init()
 {
 	next_task = 0;
 	task_list_head = 0;
 }
 
-static task* TASK_HANDLER_PopNextTask()
+task* TASK_HANDLER_PopNextTask()
 {
 	if (next_task == task_list_head)
 	{
@@ -33,7 +33,7 @@ static task* TASK_HANDLER_PopNextTask()
 	return p_next_task;
 }
 
-static bool TASK_HANDLER_InsertTask(task* p_task)
+bool TASK_HANDLER_InsertTask(task* p_task)
 {
 	if ( ((task_list_head + 1) % TASK_LIST_LEN) == next_task )
 	{
@@ -44,7 +44,9 @@ static bool TASK_HANDLER_InsertTask(task* p_task)
 	return true;
 }
 
-static bool TASK_HANDLER_IsTaskWaiting()
+
+
+bool TASK_HANDLER_IsTaskWaiting()
 {
 	if (next_task == task_list_head)
 	{

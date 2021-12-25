@@ -1,16 +1,24 @@
-#ifndef __TASK_HANDLER_H
-#define __TASK_HANDLER_H
+/*
+ * task_handler.h
+ *
+ *  Created on: 25 Dec 2021
+ *      Author: zvi
+ */
+
+#ifndef INC_TASK_HANDLER_H_
+#define INC_TASK_HANDLER_H_
 
 #include <stdbool.h>
 
 #define MAX_NUM_TASKS 20
 
-typedef void task();
 
-static void TASK_HANDLER_Init();
-static task* TASK_HANDLER_PopNextTask();
-static bool TASK_HANDLER_InsertTask(task* p_task);
-static bool TASK_HANDLER_IsTaskWaiting();
+typedef void task(void);
+
+void TASK_HANDLER_Init();
+task* TASK_HANDLER_PopNextTask();
+bool TASK_HANDLER_InsertTask(task* p_task);
+bool TASK_HANDLER_IsTaskWaiting();
 
 
-#endif
+#endif /* INC_TASK_HANDLER_H_ */
