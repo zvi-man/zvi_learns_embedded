@@ -40,7 +40,7 @@ bool TASK_HANDLER_InsertTask(task* p_task)
 		return false;
 	}
 	p_task_p_list[task_list_head] = p_task;
-	task_list_head++;
+	task_list_head = (task_list_head + 1) % TASK_LIST_LEN;
 	return true;
 }
 
