@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TASK_LIST_LEN MAX_NUM_TASKS + 1
+#define TASK_LIST_LEN (MAX_NUM_TASKS + 1)
 
 task* p_task_p_list[TASK_LIST_LEN];
 uint32_t next_task, task_list_head;
