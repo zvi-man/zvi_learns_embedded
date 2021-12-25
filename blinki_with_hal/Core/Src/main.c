@@ -66,6 +66,8 @@ static void TIM2_SetIntervalAndIniUartRead();
 static void BLUE_LED_ToggleLED();
 /* USER CODE END PFP */
 
+
+
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
@@ -98,13 +100,14 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  TASK_HANDLER_Init();
   MX_GPIO_Init();
   MX_TIM2_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_UART_Receive_IT(&huart1, uart_delay_buff.buff, NUM_OF_BYTES_IN_UINT32);
-  TASK_HANDLER_Init();
+
 
   /* USER CODE END 2 */
 
@@ -129,7 +132,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart1)
 	{
-		TIM2_SetIntervalAndIniUartRead();
+		TASK_HANDLER_InsertTask(TIM2_SetIntervalAndIniUartRead);
 	}
 }
 
@@ -137,7 +140,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim == &htim2)
 	{
-		BLUE_LED_ToggleLED();
+		TASK_HANDLER_InsertTask(BLUE_LED_ToggleLED);
 	}
 }
 static void BLUE_LED_ToggleLED()
@@ -313,6 +316,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
+
 
 #ifdef  USE_FULL_ASSERT
 /**
