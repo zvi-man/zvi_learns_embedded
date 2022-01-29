@@ -170,3 +170,5 @@ EmbeddedTraining/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
 *.map
 
 EmbeddedTraining/Debug/makefile
+
+*.launch
