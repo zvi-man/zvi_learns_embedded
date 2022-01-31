@@ -12,7 +12,8 @@
 #include <stdbool.h>
 
 
-void TIMER_init(TIM_HandleTypeDef *p_htim);
+#define TIMER_NUM TIM2
+
 void TIMER_start(TIM_HandleTypeDef *p_htim, void (*func), bool is_one_time);
 void TIMER_stop(TIM_HandleTypeDef *p_htim);
 

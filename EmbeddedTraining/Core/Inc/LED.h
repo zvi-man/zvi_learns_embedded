@@ -10,10 +10,7 @@
 
 #include "main.h"
 
-#define BLUE_LED_GPIO GPIOC
-#define BLUE_LED_GPIO_PIN GPIO_PIN_13
-
-void LED_init();
+void LED_init(GPIO_TypeDef* gpio_type, uint16_t gpio_pin);
 void LED_toggleLed();
 
 #endif /* INC_LED_H_ */
