@@ -10,13 +10,14 @@
 
 void (*p_timer_callbac_func)();
 bool run_iterrupt_once;
-
+TIM_HandleTypeDef *timer_handle;
 
 
 void TIMER_start(TIM_HandleTypeDef *p_htim, void (*func), bool is_one_time)
 {
 	p_timer_callbac_func = func;
 	run_iterrupt_once = is_one_time;
+	timer_handle = p_htim;
 	HAL_TIM_Base_Start_IT(p_htim);
 }
 
@@ -30,7 +31,7 @@ void TIMER_stop(TIM_HandleTypeDef *p_htim)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *p_htim)
 {
 	// Check wich timer triggered the interrupt
-	if (p_htim->Instance == TIMER_NUM)
+	if (p_htim->Instance == timer_handle->Instance)
 	{
 		p_timer_callbac_func();
 	}

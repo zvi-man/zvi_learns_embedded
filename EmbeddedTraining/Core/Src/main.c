@@ -22,6 +22,7 @@
 #include "LED.h"
 #include "Timer.h"
 #include "button.h"
+#include "uart.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -57,7 +58,6 @@ static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -88,27 +88,29 @@ int main(void)
   SystemClock_Config();
   MX_GPIO_Init();
   MX_TIM2_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   LED_init(GPIOC, GPIO_PIN_13);
+  UART_init(&huart1);
   TIMER_start(&htim2, LED_toggleLed, false);
-  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  BUTTON_init(GPIOB, GPIO_PIN_15, LED_toggleLed);
+  BUTTON_init(GPIOB, GPIO_PIN_15, UART_sendOuch);
   while (1)
   {
 	  BUTTON_updateButtonState();
   }
   /* USER CODE END 3 */
 }
+
 
 /**
   * @brief System Clock Configuration
