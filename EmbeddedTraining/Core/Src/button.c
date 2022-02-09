@@ -44,6 +44,7 @@ void BUTTON_updateButtonState()
 		if (new_button_state == current_button_state) // Button press consistent
 		{
 			BUTTON_setButtonState(current_button_state);
+			break;
 		} // experiencing button bouncing
 		current_button_state = new_button_state;
 	}
