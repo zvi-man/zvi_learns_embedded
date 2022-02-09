@@ -25,6 +25,7 @@
 #include "uart.h"
 #include "terminal.h"
 #include "task_handler.h"
+#include "scheduler.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -92,6 +93,8 @@ int main(void)
   MX_TIM2_Init();
   MX_USART1_UART_Init();
   TASK_HANDLER_Init();
+  SCHEDULER_init();
+
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -105,8 +108,9 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  TERMINAL_start(&huart1);
-  TIMER_start(LED_toggleLed, false);
+  SCHEDULER_slot_num toggle_led_slot_num = SCHEDULER_register_slot(500, true, LED_toggleLed);
+  TERMINAL_start(&huart1, toggle_led_slot_num);
+  TIMER_start(SCHEDULER_tick, false);
   BUTTON_init(GPIOB, GPIO_PIN_15, UART_sendOuch);
   while (1)
   {
@@ -177,9 +181,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 25000-1;
+  htim2.Init.Prescaler = 2500-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 500 - 1;
+  htim2.Init.Period = 10 - 1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)

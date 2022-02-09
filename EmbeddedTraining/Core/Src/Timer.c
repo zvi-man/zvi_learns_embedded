@@ -17,8 +17,6 @@ void TIMER_init(TIM_HandleTypeDef *p_htim)
 	timer_handle = p_htim;
 }
 
-
-
 void TIMER_start(void (*func), bool is_one_time)
 {
 	p_timer_callbac_func = func;
@@ -29,13 +27,6 @@ void TIMER_start(void (*func), bool is_one_time)
 void TIMER_stop(TIM_HandleTypeDef *p_htim)
 {
 	HAL_TIM_Base_Stop_IT(p_htim);
-}
-
-
-void TIMER_set_interval(uint32_t time_delay_msec)
-{
-	timer_handle->Instance->ARR = time_delay_msec;
-	timer_handle->Instance->CNT = 0;
 }
 
 /* USER CODE BEGIN 4 */

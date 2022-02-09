@@ -9,19 +9,24 @@
 #include <string.h>
 #include <task_handler.h>
 
-UART_HandleTypeDef *p_huart_handle;
+UART_HandleTypeDef *p_huart_send_handle;
 UART_HandleTypeDef *p_huart_receive_it_handle;
 void (*p_uart_callbac_func)();
 
 
 void UART_init(UART_HandleTypeDef *p_huart)
 {
-	p_huart_handle = p_huart;
+	p_huart_send_handle = p_huart;
 }
 
 void UART_sendOuch()
 {
-	HAL_UART_Transmit(p_huart_handle, (uint8_t *)OUCH_MSG, strlen(OUCH_MSG), HAL_MAX_DELAY);
+	UART_sendString(OUCH_MSG);
+}
+
+void UART_sendString(char *p_str_to_send)
+{
+	HAL_UART_Transmit(p_huart_send_handle, p_str_to_send, strlen(p_str_to_send), HAL_MAX_DELAY);
 }
 
 void UART_Receive_and_call_func_it(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, void (*func))
