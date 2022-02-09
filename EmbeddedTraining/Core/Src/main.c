@@ -23,6 +23,7 @@
 #include "Timer.h"
 #include "button.h"
 #include "uart.h"
+#include "terminal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -96,13 +97,14 @@ int main(void)
   /* Initialize all configured peripherals */
   LED_init(GPIOC, GPIO_PIN_13);
   UART_init(&huart1);
-  TIMER_start(&htim2, LED_toggleLed, false);
+  TIMER_init(&htim2);
   /* USER CODE BEGIN 2 */
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  TERMINAL_start(&huart1);
+  TIMER_start(LED_toggleLed, false);
   BUTTON_init(GPIOB, GPIO_PIN_15, UART_sendOuch);
   while (1)
   {

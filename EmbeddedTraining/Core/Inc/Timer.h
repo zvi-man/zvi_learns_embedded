@@ -14,8 +14,10 @@
 
 #define TIMER_NUM TIM2
 
-void TIMER_start(TIM_HandleTypeDef *p_htim, void (*func), bool is_one_time);
+void TIMER_init(TIM_HandleTypeDef *p_htim);
+void TIMER_start(void (*func), bool is_one_time);
 void TIMER_stop(TIM_HandleTypeDef *p_htim);
+void TIMER_set_interval(uint32_t time_delay_msec);
 
 
 
