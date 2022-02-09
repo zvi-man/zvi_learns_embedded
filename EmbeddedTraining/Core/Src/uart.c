@@ -7,6 +7,7 @@
 
 #include "uart.h"
 #include <string.h>
+#include <task_handler.h>
 
 UART_HandleTypeDef *p_huart_handle;
 UART_HandleTypeDef *p_huart_receive_it_handle;
@@ -34,6 +35,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == p_huart_receive_it_handle)
 	{
-		p_uart_callbac_func();
+		TASK_HANDLER_InsertTask(p_uart_callbac_func);
 	}
 }

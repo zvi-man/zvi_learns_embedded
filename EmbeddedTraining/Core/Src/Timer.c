@@ -6,7 +6,7 @@
  */
 
 #include "Timer.h"
-
+#include "task_handler.h"
 
 void (*p_timer_callbac_func)();
 bool run_iterrupt_once;
@@ -44,7 +44,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *p_htim)
 	// Check wich timer triggered the interrupt
 	if (p_htim->Instance == timer_handle->Instance)
 	{
-		p_timer_callbac_func();
+		TASK_HANDLER_InsertTask(p_timer_callbac_func);
 	}
 	if (run_iterrupt_once)
 	{

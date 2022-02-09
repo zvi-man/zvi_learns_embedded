@@ -24,6 +24,7 @@
 #include "button.h"
 #include "uart.h"
 #include "terminal.h"
+#include "task_handler.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -90,6 +91,7 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM2_Init();
   MX_USART1_UART_Init();
+  TASK_HANDLER_Init();
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -109,8 +111,12 @@ int main(void)
   while (1)
   {
 	  BUTTON_updateButtonState();
+	  if (TASK_HANDLER_IsTaskWaiting())
+	  {
+		  task* next_task_fp = TASK_HANDLER_PopNextTask();
+		  next_task_fp();
+	  }
   }
-  /* USER CODE END 3 */
 }
 
 
