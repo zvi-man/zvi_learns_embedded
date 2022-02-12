@@ -35,7 +35,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *p_htim)
 	// Check wich timer triggered the interrupt
 	if (p_htim->Instance == timer_handle->Instance)
 	{
-		TASK_HANDLER_InsertTask(p_timer_callbac_func);
+		p_timer_callbac_func();
 	}
 	if (run_iterrupt_once)
 	{
