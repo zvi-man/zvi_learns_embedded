@@ -6,6 +6,9 @@
  */
 #include "LED.h"
 #include "task_handler.h"
+#include "uart.h"
+#include "string.h"
+#include "stdio.h"
 
 GPIO_TypeDef* led_gpio_type;
 uint16_t led_gpio_pin;

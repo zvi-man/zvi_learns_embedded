@@ -114,7 +114,7 @@ int main(void)
   BUTTON_init(GPIOB, GPIO_PIN_15, UART_sendOuch);
   while (1)
   {
-	  BUTTON_updateButtonState();
+//	  BUTTON_updateButtonState();
 	  if (TASK_HANDLER_IsTaskWaiting())
 	  {
 		  task* next_task_fp = TASK_HANDLER_PopNextTask();

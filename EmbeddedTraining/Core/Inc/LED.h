@@ -11,7 +11,7 @@
 #include "main.h"
 
 #define NUM_TIMES_TOGGLE_LED_FOR_MSG 5
-#define TOGGLE_LED_SERIAL_MSG "Toggle Led %d times"
+#define TOGGLE_LED_SERIAL_MSG "Toggle Led %d times\n"
 
 void LED_init(GPIO_TypeDef* gpio_type, uint16_t gpio_pin);
 void LED_ledToggledXTimesMsg();
