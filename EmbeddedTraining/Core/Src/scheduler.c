@@ -46,7 +46,7 @@ void SCHEDULER_tick()
 {
 	for(int i=0; i < MAX_SLOTS; i++)
 		{
-			if(!slot_list[i].is_active)
+			if(slot_list[i].is_active)
 			{
 				tick_slot(&slot_list[i]);
 			}
@@ -61,13 +61,13 @@ void tick_slot(SCHEDULER_SLOT_t *slot)
 	if(slot->ticks_remaining == 0)
 	{
 		TASK_HANDLER_InsertTask(slot->pf_callback);
-	}
-	if(slot->is_priodic)
-	{
-		slot->ticks_remaining = slot->period_in_ticks;
-	} else
-	{
-		slot->is_active = false;
+		if(slot->is_priodic)
+		{
+			slot->ticks_remaining = slot->period_in_ticks;
+		} else
+		{
+			slot->is_active = false;
+		}
 	}
 }
 
