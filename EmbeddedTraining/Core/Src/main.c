@@ -26,6 +26,7 @@
 #include "terminal.h"
 #include "task_handler.h"
 #include "scheduler.h"
+#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -53,6 +54,11 @@ TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart1;
 
+DMA_HandleTypeDef hdma_adc1;
+
+
+uint16_t p_dma_buf[4096];
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -62,7 +68,12 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
+void print_buff(int start, int end);
+void print_first_half();
+void print_seconed_half();
+
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -106,6 +117,7 @@ int main(void)
   LED_init(GPIOC, GPIO_PIN_13);
   UART_init(&huart1);
   TIMER_init(&htim2);
+  MX_DMA_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
@@ -116,26 +128,49 @@ int main(void)
   TERMINAL_start(&huart1, toggle_led_slot_num);
   TIMER_start(SCHEDULER_tick, false);
   BUTTON_init(GPIOB, GPIO_PIN_15, UART_sendOuch);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)p_dma_buf, 4096);
+
   while (1)
   {
 	  //	  BUTTON_updateButtonState();
-//	  if (TASK_HANDLER_IsTaskWaiting())
-//	  {
-//		  task* next_task_fp = TASK_HANDLER_PopNextTask();
-//		  next_task_fp();
-//	  }
-	  HAL_Delay(1000);
-	  HAL_ADC_Start_IT(&hadc1);
+	  if (TASK_HANDLER_IsTaskWaiting())
+	  {
+		  task* next_task_fp = TASK_HANDLER_PopNextTask();
+		  next_task_fp();
+	  }
+//	  HAL_Delay(1000);
   }
+}
+
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	TASK_HANDLER_InsertTask(print_first_half);
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	uint16_t raw;
+	TASK_HANDLER_InsertTask(print_seconed_half);
+}
+
+void print_first_half()
+{
+	print_buff(0, 2048);
+}
+
+void print_seconed_half()
+{
+	print_buff(2048, 4096);
+}
+
+void print_buff(int start, int end)
+{
 	char p_msg[10];
-	raw = HAL_ADC_GetValue(&hadc1);
-	sprintf(p_msg, "%hu\r\n", raw);
-	UART_sendString(p_msg);
+	for(int i=start; i < end; i++)
+	{
+		sprintf(p_msg, "%hu\r\n", p_dma_buf[i]);
+		UART_sendString(p_msg);
+	}
+	UART_sendString("F\r\n");
 }
 
 
@@ -200,13 +235,13 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
@@ -302,6 +337,22 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 }
 
