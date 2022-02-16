@@ -49,15 +49,15 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart1;
 
-DMA_HandleTypeDef hdma_adc1;
 
 
-uint16_t p_dma_buf[4096];
+uint16_t p_dma_buf[10];
 
 /* USER CODE BEGIN PV */
 
@@ -128,7 +128,7 @@ int main(void)
   TERMINAL_start(&huart1, toggle_led_slot_num);
   TIMER_start(SCHEDULER_tick, false);
   BUTTON_init(GPIOB, GPIO_PIN_15, UART_sendOuch);
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)p_dma_buf, 4096);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)p_dma_buf, 10);
 
   while (1)
   {
@@ -145,21 +145,23 @@ int main(void)
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	TASK_HANDLER_InsertTask(print_first_half);
+	LED_toggleLed();
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	TASK_HANDLER_InsertTask(print_seconed_half);
+	LED_toggleLed();
 }
 
 void print_first_half()
 {
-	print_buff(0, 2048);
+	print_buff(0, 5);
 }
 
 void print_seconed_half()
 {
-	print_buff(2048, 4096);
+	print_buff(5, 10);
 }
 
 void print_buff(int start, int end)
@@ -237,8 +239,8 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ScanConvMode = DISABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_TRGO;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 1;
   hadc1.Init.DMAContinuousRequests = ENABLE;
@@ -281,9 +283,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 2500-1;
+  htim2.Init.Prescaler = 25000-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 10 - 1;
+  htim2.Init.Period = 1000 - 1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
