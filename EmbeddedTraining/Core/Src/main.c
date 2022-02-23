@@ -124,11 +124,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  SCHEDULER_slot_num toggle_led_slot_num = SCHEDULER_register_slot(500, true, LED_toggleLed);
-  TERMINAL_start(&huart1, toggle_led_slot_num);
+//  SCHEDULER_slot_num toggle_led_slot_num = SCHEDULER_register_slot(500, true, LED_toggleLed);
+//  TERMINAL_start(&huart1, toggle_led_slot_num);
   TIMER_start(SCHEDULER_tick, false);
   BUTTON_init(GPIOB, GPIO_PIN_15, UART_sendOuch);
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)p_dma_buf, 10);
+  HAL_ADC_Start_IT(&hadc1);
+//  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)p_dma_buf, 10);
 
   while (1)
   {
@@ -139,19 +140,24 @@ int main(void)
 		  next_task_fp();
 	  }
 //	  HAL_Delay(1000);
+//	  print_buff(0, 10);
   }
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	TASK_HANDLER_InsertTask(print_first_half);
-	LED_toggleLed();
+//	TASK_HANDLER_InsertTask(print_first_half);
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	TASK_HANDLER_InsertTask(print_seconed_half);
+//	TASK_HANDLER_InsertTask(print_seconed_half);
 	LED_toggleLed();
+	char p_msg[10];
+	uint16_t raw;
+	raw = HAL_ADC_GetValue(&hadc1);
+	sprintf(p_msg, "%hu\r\n", raw);
+	UART_sendString(p_msg);
 }
 
 void print_first_half()
@@ -297,7 +303,7 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
   {
